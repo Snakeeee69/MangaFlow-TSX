@@ -6,7 +6,9 @@ import { Catalogo } from './paginas/Catalogo';
 import { EditorialDetalle } from './paginas/EditorialDetalle';
 import { Editoriales } from './paginas/Editoriales';
 import { Inicio } from './paginas/Inicio';
+import { Biblioteca } from './paginas/Biblioteca';
 import { Puntos } from './paginas/Puntos';
+import { Proximamente } from './paginas/Proximamente';
 
 const Aplicacion = () => {
   const [cantidadCarrito, setCantidadCarrito] = useState(0);
@@ -17,7 +19,11 @@ const Aplicacion = () => {
       ? 'puntos'
       : location.pathname.startsWith('/editoriales')
         ? 'editoriales'
-      : 'inicio';
+        : location.pathname === '/biblioteca'
+          ? 'biblioteca'
+          : location.pathname === '/proximamente'
+            ? 'proximamente'
+          : 'inicio';
 
   const agregarAlCarrito = (id: number) => {
     setCantidadCarrito(cantidad => cantidad + 1);
@@ -33,6 +39,8 @@ const Aplicacion = () => {
           <Route path="/inicio" element={<Inicio alAgregarAlCarrito={agregarAlCarrito} />} />
           <Route path="/catalogo" element={<Catalogo alAgregarAlCarrito={agregarAlCarrito} />} />
           <Route path="/puntos" element={<Puntos />} />
+          <Route path="/biblioteca" element={<Biblioteca />} />
+          <Route path="/proximamente" element={<Proximamente />} />
           <Route path="/editoriales" element={<Editoriales alAgregarAlCarrito={agregarAlCarrito} />} />
           <Route path="/editoriales/:slug" element={<EditorialDetalle alAgregarAlCarrito={agregarAlCarrito} />} />
           <Route path="*" element={<Navigate to="/inicio" replace />} />

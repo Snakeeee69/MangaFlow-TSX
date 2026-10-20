@@ -5,14 +5,14 @@ const enlaces = [
   { texto: 'Catálogo', href: '#/catalogo', pagina: 'catalogo' },
   { texto: 'Puntos y recompensas', href: '#/puntos', pagina: 'puntos' },
   { texto: 'Editoriales', href: '#/editoriales', pagina: 'editoriales' },
-  { texto: 'Mi Biblioteca', href: '#/biblioteca' },
-  { texto: 'Próximamente', href: '#/proximamente', nuevo: true },
+  { texto: 'Mi Biblioteca', href: '#/biblioteca', pagina: 'biblioteca' },
+  { texto: 'Próximamente', href: '#/proximamente', pagina: 'proximamente', nuevo: true },
   { texto: 'Mi cuenta', href: '#/cuenta' },
 ];
 
 interface CabeceraProps {
   cantidadCarrito: number;
-  paginaActiva: 'inicio' | 'catalogo' | 'puntos' | 'editoriales';
+  paginaActiva: 'inicio' | 'catalogo' | 'puntos' | 'editoriales' | 'biblioteca' | 'proximamente';
 }
 
 export const Cabecera = ({ cantidadCarrito, paginaActiva }: CabeceraProps) => {
