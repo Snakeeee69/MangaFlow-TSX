@@ -1,4 +1,4 @@
-import { editoriales } from '../../data/mangaMock';
+import { editoriales } from '../../data/editoriales';
 
 export const SeccionEditoriales = () => (
   <section id="editoriales" className="mb-5">
@@ -27,7 +27,7 @@ export const SeccionEditoriales = () => (
               <p className="text-secondary small mb-3">{editorial.descripcion}</p>
             </div>
             <a className="editorial-link" href={`#/editoriales/${editorial.slug}`}>
-              {editorial.obras} obras disponibles <span aria-hidden="true">→</span>
+              Ver {editorial.catalogo.length} títulos <span aria-hidden="true">→</span>
             </a>
           </article>
         </div>

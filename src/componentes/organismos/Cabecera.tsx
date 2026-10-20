@@ -4,7 +4,7 @@ const enlaces = [
   { texto: 'Inicio', href: '#/inicio', pagina: 'inicio' },
   { texto: 'Catálogo', href: '#/catalogo', pagina: 'catalogo' },
   { texto: 'Puntos y recompensas', href: '#/puntos', pagina: 'puntos' },
-  { texto: 'Editoriales', href: '#editoriales' },
+  { texto: 'Editoriales', href: '#/editoriales', pagina: 'editoriales' },
   { texto: 'Mi Biblioteca', href: '#/biblioteca' },
   { texto: 'Próximamente', href: '#/proximamente', nuevo: true },
   { texto: 'Mi cuenta', href: '#/cuenta' },
@@ -12,7 +12,7 @@ const enlaces = [
 
 interface CabeceraProps {
   cantidadCarrito: number;
-  paginaActiva: 'inicio' | 'catalogo' | 'puntos';
+  paginaActiva: 'inicio' | 'catalogo' | 'puntos' | 'editoriales';
 }
 
 export const Cabecera = ({ cantidadCarrito, paginaActiva }: CabeceraProps) => {
