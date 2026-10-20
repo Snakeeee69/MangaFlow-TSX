@@ -1,21 +1,35 @@
 import { useEffect, useState } from 'react';
 import { destacados } from '../../data/mangaMock';
+import { esMangaActivo, slugManga, type MangaCatalogo } from '../../data/catalogo';
 
-export const CarruselDestacados = () => {
+interface CarruselDestacadosProps {
+  mangas: MangaCatalogo[];
+}
+
+export const CarruselDestacados = ({ mangas }: CarruselDestacadosProps) => {
   const [indiceActivo, setIndiceActivo] = useState(0);
-  const destacado = destacados[indiceActivo];
+  const destacadosDisponibles = destacados.filter(destacado => mangas.some(manga => (
+    esMangaActivo(manga) && slugManga(manga.titulo) === slugManga(destacado.titulo)
+  )));
+  const destacado = destacadosDisponibles[indiceActivo % Math.max(1, destacadosDisponibles.length)];
 
   useEffect(() => {
+    if (destacadosDisponibles.length < 2) return undefined;
     const intervalo = window.setInterval(() => {
-      setIndiceActivo(indice => (indice + 1) % destacados.length);
+      setIndiceActivo(indice => (indice + 1) % destacadosDisponibles.length);
     }, 6000);
 
     return () => window.clearInterval(intervalo);
-  }, []);
+  }, [destacadosDisponibles.length]);
 
   const cambiarDestacado = (direccion: number) => {
-    setIndiceActivo(indice => (indice + direccion + destacados.length) % destacados.length);
+    if (destacadosDisponibles.length === 0) return;
+    setIndiceActivo(indice => (indice + direccion + destacadosDisponibles.length) % destacadosDisponibles.length);
   };
+
+  if (!destacado) {
+    return <p className="text-secondary text-center py-5">No hay mangas destacados disponibles.</p>;
+  }
 
   return (
     <section className="hero-panel p-4 p-lg-5 mb-5" aria-label="Mangas destacados">
@@ -40,7 +54,7 @@ export const CarruselDestacados = () => {
         <div className="col-md-10">
           <div className="row align-items-center g-4">
             <div className="col-md-4 text-center">
-              <a href={`#/detalle-manga/${destacado.id}`}>
+              <a href={`#/detalle-manga/${slugManga(destacado.titulo)}`}>
                 <img className="hero-cover rounded-3" src={destacado.imagen} alt={destacado.titulo} />
               </a>
             </div>
@@ -49,7 +63,7 @@ export const CarruselDestacados = () => {
               <h2 className="display-6 fw-bold mt-1 mb-3">{destacado.titulo}</h2>
               <p className="hero-description small mb-4">{destacado.descripcion}</p>
               <div className="hero-buttons d-flex flex-wrap gap-3">
-                <a className="btn-magenta" href={`#/detalle-manga/${destacado.id}`}>Ver manga</a>
+                <a className="btn-magenta" href={`#/detalle-manga/${slugManga(destacado.titulo)}`}>Ver manga</a>
                 <a className="btn btn-outline-light px-4 py-2" href="#/catalogo">Ver catálogo</a>
               </div>
             </div>
@@ -57,7 +71,7 @@ export const CarruselDestacados = () => {
         </div>
 
         <div className="col-md-2 hero-thumbnails d-none d-md-flex flex-column gap-2 align-items-center ps-3">
-          {destacados.map((item, indice) => (
+          {destacadosDisponibles.map((item, indice) => (
             <button
               key={item.id}
               type="button"
@@ -73,7 +87,7 @@ export const CarruselDestacados = () => {
       </div>
 
       <div className="hero-indicators" aria-label="Elegir manga destacado">
-        {destacados.map((item, indice) => (
+        {destacadosDisponibles.map((item, indice) => (
           <button
             key={item.id}
             type="button"

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { editoriales } from '../data/editoriales';
 import { TarjetaObraEditorial } from '../componentes/moleculas/TarjetaObraEditorial';
+import type { CarritoItem } from '../data/carrito';
 
 interface EditorialesProps {
-  alAgregarAlCarrito: (id: number) => void;
+  alAgregarAlCarrito: (item: CarritoItem) => void;
 }
 
 export const Editoriales = ({ alAgregarAlCarrito }: EditorialesProps) => {
@@ -55,11 +56,11 @@ export const Editoriales = ({ alAgregarAlCarrito }: EditorialesProps) => {
         </div>
 
         <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
-          {editorialSeleccionada.catalogo.map((obra, indice) => (
+          {editorialSeleccionada.catalogo.map(obra => (
             <div className="col" key={`${editorialSeleccionada.slug}-${obra.titulo}`}>
               <TarjetaObraEditorial
                 obra={obra}
-                alAgregarAlCarrito={() => alAgregarAlCarrito(indice + 1)}
+                alAgregarAlCarrito={alAgregarAlCarrito}
               />
             </div>
           ))}

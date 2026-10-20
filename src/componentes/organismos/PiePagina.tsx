@@ -20,7 +20,7 @@ export const PiePagina = () => (
           <ul className="footer-links">
             <li><a href="#/inicio">Inicio</a></li>
             <li><a href="#/catalogo">Catálogo</a></li>
-            <li><a href="#editoriales">Editoriales</a></li>
+            <li><a href="#/editoriales">Editoriales</a></li>
             <li><a href="#/puntos">Puntos y recompensas</a></li>
           </ul>
         </div>

@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { AccesoRequerido } from '../componentes/moleculas/AccesoRequerido';
+import { Link } from 'react-router-dom';
+import type { LibroBiblioteca, SesionUsuario } from '../data/sesion';
 
 const portadaOnePiece = '/images/catalogo/One_Piece_01.jpg';
 const paginasLectura = Array.from(
@@ -6,43 +9,21 @@ const paginasLectura = Array.from(
   (_, indice) => `/images/caps/pagina${indice + 1}.png`,
 );
 
-interface UsuarioBiblioteca {
-  nombre?: string;
-  username?: string;
-  email?: string;
+interface BibliotecaProps {
+  sesion: SesionUsuario | null;
 }
 
-const esUsuarioBiblioteca = (valor: unknown): valor is UsuarioBiblioteca => (
-  typeof valor === 'object' && valor !== null && !Array.isArray(valor)
-);
-
-const obtenerUsuario = (): UsuarioBiblioteca | null => {
-  for (const clave of ['mangaFlow_session', 'activeUser', 'usuarioLogueado']) {
-    const datos = localStorage.getItem(clave);
-    if (!datos) continue;
-
-    try {
-      const usuario: unknown = JSON.parse(datos);
-      if (esUsuarioBiblioteca(usuario)) return usuario;
-      console.error(`Los datos guardados en "${clave}" no tienen el formato de usuario esperado.`);
-    } catch (error) {
-      console.error(`No se pudieron leer los datos de usuario guardados en "${clave}".`, error);
-    }
-  }
-
-  return null;
-};
-
-export const Biblioteca = () => {
-  const [nombreUsuario] = useState(() => {
-    const usuario = obtenerUsuario();
-    return usuario?.nombre
-      || usuario?.username
-      || (usuario?.email ? usuario.email.split('@')[0] : 'Usuario Demostración');
-  });
+export const Biblioteca = ({ sesion }: BibliotecaProps) => {
   const [lectorAbierto, setLectorAbierto] = useState(false);
+  const [libroActual, setLibroActual] = useState<LibroBiblioteca | null>(null);
   const [paginaActual, setPaginaActual] = useState(0);
   const [paginaNoDisponible, setPaginaNoDisponible] = useState(false);
+  const usuarioAutenticado = Boolean(sesion && !sesion.isGuest);
+  const nombreUsuario = sesion?.nombre
+    || sesion?.username
+    || (sesion?.email ? sesion.email.split('@')[0] : 'lector');
+  const librosDigitales = sesion?.biblioteca ?? [];
+  const cantidadObras = librosDigitales.length;
 
   useEffect(() => {
     if (!lectorAbierto) return;
@@ -67,7 +48,8 @@ export const Biblioteca = () => {
     };
   }, [lectorAbierto]);
 
-  const abrirLector = () => {
+  const abrirLector = (libro: LibroBiblioteca) => {
+    setLibroActual(libro);
     setPaginaActual(0);
     setPaginaNoDisponible(false);
     setLectorAbierto(true);
@@ -77,6 +59,15 @@ export const Biblioteca = () => {
     setPaginaNoDisponible(false);
     setPaginaActual(pagina => Math.min(paginasLectura.length - 1, Math.max(0, pagina + cambio)));
   };
+
+  if (!usuarioAutenticado) {
+    return (
+      <AccesoRequerido
+        titulo="Tu biblioteca es privada"
+        descripcion="Inicia sesión para ver tu colección y leer los tomos digitales."
+      />
+    );
+  }
 
   return (
     <>
@@ -94,37 +85,64 @@ export const Biblioteca = () => {
           </div>
           <span className="user-badge badge px-3 py-2 rounded-3">
             <i className="fa-solid fa-bookmark me-1" aria-hidden="true" />
-            1 obra en colección
+            {cantidadObras} {cantidadObras === 1 ? 'obra en colección' : 'obras en colección'}
           </span>
         </div>
 
         <section className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" aria-label="Obras digitales">
-          <div className="col">
-            <article className="library-book-card card-panel p-3 text-center h-100 d-flex flex-column justify-content-between">
-              <div>
-                <div className="library-cover-wrap position-relative mb-3 overflow-hidden rounded">
-                  <img
-                    className="library-cover shadow"
-                    src={portadaOnePiece}
-                    alt="Portada de One Piece, tomo 1"
-                  />
-                  <span className="position-absolute top-0 end-0 badge bg-success m-2 px-2 py-1">
-                    Digital adquirido
-                  </span>
-                </div>
-                <h2 className="text-white fw-bold fs-5 mb-1">One Piece - Tomo 1</h2>
-                <p className="text-secondary small mb-2">Romance Dawn · Eiichiro Oda</p>
-                <p className="text-secondary library-book-detail mb-3">
-                  6 páginas de lectura disponibles.
-                </p>
+          {librosDigitales.map(libro => {
+            const puedeLeerMuestra = libro.titulo.toLocaleLowerCase('es').includes('one piece');
+            return (
+              <div className="col" key={libro.id}>
+                <article className="library-book-card card-panel p-3 text-center h-100 d-flex flex-column justify-content-between">
+                  <div>
+                    <div className="library-cover-wrap position-relative mb-3 overflow-hidden rounded">
+                      <img
+                        className="library-cover shadow"
+                        src={libro.imagen || portadaOnePiece}
+                        alt={`Portada de ${libro.titulo}`}
+                        onError={event => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = portadaOnePiece;
+                        }}
+                      />
+                      <span className="position-absolute top-0 end-0 badge bg-success m-2 px-2 py-1">
+                        Digital adquirido
+                      </span>
+                    </div>
+                    <h2 className="text-white fw-bold fs-5 mb-1">{libro.titulo}</h2>
+                    <p className="text-secondary small mb-2">Compra del {new Date(libro.fechaAdquisicion).toLocaleDateString('es-CL')}</p>
+                    <p className="text-secondary library-book-detail mb-3">
+                      {libro.cantidad > 1 ? `${libro.cantidad} unidades en tu biblioteca.` : 'Disponible en tu colección digital.'}
+                    </p>
+                  </div>
+                  {puedeLeerMuestra ? (
+                    <button
+                      className="btn-magenta w-100 py-2"
+                      type="button"
+                      onClick={() => abrirLector(libro)}
+                    >
+                      <i className="fa-solid fa-book-open-reader me-2" aria-hidden="true" />
+                      Leer ahora
+                    </button>
+                  ) : (
+                    <button className="btn btn-outline-secondary w-100 py-2" type="button" disabled>
+                      Contenido digital próximamente
+                    </button>
+                  )}
+                </article>
               </div>
-              <button className="btn-magenta w-100 py-2" type="button" onClick={abrirLector}>
-                <i className="fa-solid fa-book-open-reader me-2" aria-hidden="true" />
-                Leer ahora
-              </button>
-            </article>
-          </div>
+            );
+          })}
         </section>
+        {librosDigitales.length === 0 && (
+          <div className="library-empty-state text-center py-5 mt-4">
+            <i className="fa-solid fa-book-open text-secondary display-4 mb-3" aria-hidden="true" />
+            <h2 className="text-white fw-bold fs-4">Aún no tienes mangas digitales</h2>
+            <p className="text-secondary small mb-4">Los mangas físicos no aparecen en esta biblioteca.</p>
+            <Link className="btn-magenta d-inline-block" to="/catalogo">Explorar catálogo</Link>
+          </div>
+        )}
       </main>
 
       {lectorAbierto && (
@@ -140,7 +158,7 @@ export const Biblioteca = () => {
               <div className="d-flex align-items-center gap-3">
                 <i className="fa-solid fa-book-open text-accent fs-4" aria-hidden="true" />
                 <div>
-                  <h2 className="reader-title" id="reader-title">One Piece - Tomo 1: Romance Dawn</h2>
+                  <h2 className="reader-title" id="reader-title">{libroActual?.titulo} - Lectura digital</h2>
                   <span className="text-secondary small">Capítulo 1: El Amanecer de la Aventura</span>
                 </div>
               </div>
@@ -165,7 +183,7 @@ export const Biblioteca = () => {
                 <img
                   className="reader-page-image"
                   src={paginasLectura[paginaActual]}
-                  alt={`Página ${paginaActual + 1} de One Piece`}
+                  alt={`Página ${paginaActual + 1} de ${libroActual?.titulo ?? 'manga'}`}
                   onError={() => setPaginaNoDisponible(true)}
                 />
               )}

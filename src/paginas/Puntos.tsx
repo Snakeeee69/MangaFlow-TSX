@@ -1,15 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { estadosCertificacion, recompensas, seriesIntercambio, type Recompensa } from '../data/recompensas';
 import { TarjetaRecompensa } from '../componentes/moleculas/TarjetaRecompensa';
-
-type Usuario = Record<string, unknown> & {
-  isGuest?: boolean;
-  puntos?: number;
-};
-
-const esUsuario = (valor: unknown): valor is Usuario => (
-  typeof valor === 'object' && valor !== null && !Array.isArray(valor)
-);
+import { AccesoRequerido } from '../componentes/moleculas/AccesoRequerido';
+import { guardarSesion, puntosDeSesion, type SesionUsuario } from '../data/sesion';
 
 interface EntregaCertificada {
   id: number;
@@ -20,39 +13,13 @@ interface EntregaCertificada {
   puntos: number;
 }
 
-const clavesUsuario = ['mangaFlow_session', 'activeUser', 'usuarioLogueado'];
+interface PuntosProps {
+  sesion: SesionUsuario | null;
+  alActualizarSesion: (sesion: SesionUsuario) => void;
+}
 
-const leerUsuarioActual = (): Usuario | null => {
-  for (const clave of clavesUsuario) {
-    const valor = localStorage.getItem(clave);
-    if (!valor) continue;
-
-    try {
-      const usuario: unknown = JSON.parse(valor);
-      if (esUsuario(usuario)) {
-        return usuario;
-      }
-      console.error(`Los datos guardados en "${clave}" no tienen el formato de usuario esperado.`);
-    } catch (error) {
-      console.error(`No se pudieron leer los datos de usuario guardados en "${clave}".`, error);
-    }
-  }
-
-  return null;
-};
-
-const obtenerPuntos = (usuario: Usuario | null) => (
-  typeof usuario?.puntos === 'number' && Number.isFinite(usuario.puntos)
-    ? usuario.puntos
-    : 0
-);
-
-export const Puntos = () => {
-  const [cuenta, setCuenta] = useState(() => {
-    const usuario = leerUsuarioActual();
-    return { usuario, puntosUsuario: obtenerPuntos(usuario) };
-  });
-  const { usuario, puntosUsuario } = cuenta;
+export const Puntos = ({ sesion, alActualizarSesion }: PuntosProps) => {
+  const [puntosUsuario, setPuntosUsuario] = useState(() => puntosDeSesion(sesion));
   const [pestana, setPestana] = useState<'recompensas' | 'intercambio'>('recompensas');
   const [serieId, setSerieId] = useState('');
   const [tomo, setTomo] = useState('');
@@ -61,21 +28,24 @@ export const Puntos = () => {
   const [mensaje, setMensaje] = useState('');
   const [tipoMensaje, setTipoMensaje] = useState<'success' | 'danger'>('success');
 
-  const usuarioAutenticado = Boolean(usuario && !usuario.isGuest);
+  const usuarioAutenticado = Boolean(sesion && !sesion.isGuest);
   const serieSeleccionada = seriesIntercambio.find(serie => serie.id === serieId);
 
   const guardarPuntos = (nuevosPuntos: number) => {
-    if (!usuario || usuario.isGuest) {
+    if (!sesion || sesion.isGuest) {
       setTipoMensaje('danger');
       setMensaje('Debes iniciar sesión para acumular y canjear puntos.');
       return false;
     }
 
-    const usuarioActualizado: Usuario = { ...usuario, puntos: nuevosPuntos };
-    clavesUsuario.forEach(clave => {
-      localStorage.setItem(clave, JSON.stringify(usuarioActualizado));
-    });
-    setCuenta({ usuario: usuarioActualizado, puntosUsuario: nuevosPuntos });
+    const usuarioActualizado: SesionUsuario = {
+      ...sesion,
+      puntos: nuevosPuntos,
+      points: nuevosPuntos,
+    };
+    guardarSesion(usuarioActualizado);
+    alActualizarSesion(usuarioActualizado);
+    setPuntosUsuario(nuevosPuntos);
     return true;
   };
 
@@ -128,6 +98,15 @@ export const Puntos = () => {
     setMensaje(`¡Entrega procesada! Se acreditaron ${estado.puntos} puntos.`);
     event.currentTarget.reset();
   };
+
+  if (!usuarioAutenticado) {
+    return (
+      <AccesoRequerido
+        titulo="Puntos y recompensas"
+        descripcion="Inicia sesión para consultar tu saldo, ver recompensas y registrar entregas de mangas."
+      />
+    );
+  }
 
   return (
     <main className="container points-page py-4 py-lg-5">

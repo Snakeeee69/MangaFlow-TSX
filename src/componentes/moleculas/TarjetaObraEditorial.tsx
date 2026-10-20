@@ -1,8 +1,9 @@
 import type { ObraEditorial } from '../../data/editoriales';
+import { crearCarritoItem, type CarritoItem } from '../../data/carrito';
 
 interface TarjetaObraEditorialProps {
   obra: ObraEditorial;
-  alAgregarAlCarrito: () => void;
+  alAgregarAlCarrito: (item: CarritoItem) => void;
 }
 
 export const TarjetaObraEditorial = ({ obra, alAgregarAlCarrito }: TarjetaObraEditorialProps) => (
@@ -37,7 +38,12 @@ export const TarjetaObraEditorial = ({ obra, alAgregarAlCarrito }: TarjetaObraEd
         <button
           className="btn btn-sm text-secondary p-1 hover-purple"
           type="button"
-          onClick={alAgregarAlCarrito}
+          onClick={() => alAgregarAlCarrito(crearCarritoItem(
+            obra.titulo,
+            obra.precioFisico,
+            obra.categoria,
+            obra.imagen,
+          ))}
           aria-label={`Agregar ${obra.titulo} al carrito`}
           title="Agregar al carrito"
         >

@@ -2,30 +2,41 @@ import { useMemo, useState } from 'react';
 import {
   demografiasCatalogo,
   generosCatalogo,
-  mangasCatalogo,
+  esMangaActivo,
+  type MangaCatalogo,
 } from '../data/catalogo';
 import { TarjetaCatalogo } from '../componentes/moleculas/TarjetaCatalogo';
+import type { CarritoItem } from '../data/carrito';
 
 type FormatoCatalogo = 'todos' | 'digitales';
 
 interface CatalogoProps {
-  alAgregarAlCarrito: (id: number) => void;
+  mangas: MangaCatalogo[];
+  listaDeseos: number[];
+  alCambiarFavorito: (id: number) => void;
+  alAgregarAlCarrito: (item: CarritoItem) => void;
 }
 
-export const Catalogo = ({ alAgregarAlCarrito }: CatalogoProps) => {
+export const Catalogo = ({
+  mangas,
+  listaDeseos,
+  alCambiarFavorito,
+  alAgregarAlCarrito,
+}: CatalogoProps) => {
   const [formato, setFormato] = useState<FormatoCatalogo>('todos');
   const [busqueda, setBusqueda] = useState('');
   const [demografia, setDemografia] = useState('Todas');
   const [genero, setGenero] = useState('Todos');
 
-  const mangasFiltrados = useMemo(() => mangasCatalogo.filter(manga => {
+  const mangasFiltrados = useMemo(() => mangas.filter(manga => {
+    if (!esMangaActivo(manga)) return false;
     const coincideFormato = formato === 'todos' || manga.esDigitalOnly;
     const coincideBusqueda = manga.titulo.toLocaleLowerCase('es').includes(busqueda.trim().toLocaleLowerCase('es'));
     const coincideDemografia = demografia === 'Todas' || manga.demografia === demografia;
     const coincideGenero = genero === 'Todos' || manga.generos.includes(genero);
 
     return coincideFormato && coincideBusqueda && coincideDemografia && coincideGenero;
-  }), [busqueda, demografia, formato, genero]);
+  }), [busqueda, demografia, formato, genero, mangas]);
 
   const hayFiltrosActivos = Boolean(busqueda.trim())
     || formato !== 'todos'
@@ -135,7 +146,12 @@ export const Catalogo = ({ alAgregarAlCarrito }: CatalogoProps) => {
         <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
           {mangasFiltrados.map(manga => (
             <div className="col" key={manga.id}>
-              <TarjetaCatalogo manga={manga} alAgregarAlCarrito={alAgregarAlCarrito} />
+              <TarjetaCatalogo
+                manga={manga}
+                esFavorito={listaDeseos.includes(manga.id)}
+                alCambiarFavorito={alCambiarFavorito}
+                alAgregarAlCarrito={alAgregarAlCarrito}
+              />
             </div>
           ))}
         </div>

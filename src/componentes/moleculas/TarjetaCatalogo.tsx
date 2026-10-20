@@ -1,14 +1,22 @@
-import type { MangaCatalogo } from '../../data/catalogo';
+import { slugManga, type MangaCatalogo } from '../../data/catalogo';
+import { crearCarritoItem, type CarritoItem } from '../../data/carrito';
 
 interface TarjetaCatalogoProps {
   manga: MangaCatalogo;
-  alAgregarAlCarrito: (id: number) => void;
+  esFavorito: boolean;
+  alCambiarFavorito: (id: number) => void;
+  alAgregarAlCarrito: (item: CarritoItem) => void;
 }
 
-export const TarjetaCatalogo = ({ manga, alAgregarAlCarrito }: TarjetaCatalogoProps) => (
+export const TarjetaCatalogo = ({
+  manga,
+  esFavorito,
+  alCambiarFavorito,
+  alAgregarAlCarrito,
+}: TarjetaCatalogoProps) => (
   <article className="product-card catalog-product-card h-100 p-3 d-flex flex-column justify-content-between">
-    <a href={`#/detalle-manga/${manga.id}`} className="product-link">
-      <div className="catalog-cover-wrap position-relative">
+    <div className="catalog-cover-wrap position-relative">
+      <a href={`#/detalle-manga/${slugManga(manga.titulo)}`} className="product-link">
         <img
           src={manga.imagen}
           alt={manga.titulo}
@@ -18,22 +26,29 @@ export const TarjetaCatalogo = ({ manga, alAgregarAlCarrito }: TarjetaCatalogoPr
             event.currentTarget.src = '/images/logo/logoMangaFlow.png';
           }}
         />
-        {manga.esDigitalOnly && (
-          <div className="catalog-badges d-flex flex-column align-items-end gap-1">
-            <span className="badge bg-info text-dark fw-bold">Solo Digital</span>
-            {manga.proximamenteFisico && (
-              <span className="badge bg-danger text-white fw-bold">
-                <i className="fa-solid fa-fire me-1" aria-hidden="true" />
-                Próx. Físico
-              </span>
-            )}
-            <span className="badge bg-warning text-dark fw-bold">
-              <i className="fa-solid fa-ticket me-1" aria-hidden="true" />
-              Cupón $2.300 p/ Físico
+        <div className="catalog-badges d-flex flex-column align-items-start gap-1">
+          <span className={`format-badge ${manga.esDigitalOnly ? 'digital-only' : 'digital-physical'}`}>
+            {manga.esDigitalOnly ? 'Solo digital' : 'Digital y físico'}
+          </span>
+          {manga.proximamenteFisico && (
+            <span className="badge bg-danger text-white fw-bold">
+              <i className="fa-solid fa-fire me-1" aria-hidden="true" />
+              Próx. físico
             </span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </a>
+      <button
+        className={`favorite-card-button ${esFavorito ? 'selected' : ''}`}
+        type="button"
+        aria-label={esFavorito ? `Quitar ${manga.titulo} de favoritos` : `Agregar ${manga.titulo} a favoritos`}
+        aria-pressed={esFavorito}
+        onClick={() => alCambiarFavorito(manga.id)}
+      >
+        <i className={`fa-${esFavorito ? 'solid' : 'regular'} fa-heart`} aria-hidden="true" />
+      </button>
+    </div>
+    <a href={`#/detalle-manga/${slugManga(manga.titulo)}`} className="product-link">
       <div className="d-flex gap-1 mb-1 flex-wrap">
         <span className="badge bg-dark text-secondary catalog-tag">{manga.demografia.toUpperCase()}</span>
         {manga.generos.slice(0, 2).map(genero => (
@@ -48,7 +63,14 @@ export const TarjetaCatalogo = ({ manga, alAgregarAlCarrito }: TarjetaCatalogoPr
         className="btn-add-cart px-3 py-2"
         type="button"
         aria-label={`Agregar ${manga.titulo} al carrito`}
-        onClick={() => alAgregarAlCarrito(manga.id)}
+        onClick={() => alAgregarAlCarrito(crearCarritoItem(
+          manga.titulo,
+          manga.precio,
+          manga.demografia,
+          manga.imagen,
+          manga.esDigitalOnly ? 'Digital' : 'Físico',
+          manga.id,
+        ))}
       >
         <i className="fa-solid fa-cart-plus me-1" aria-hidden="true" />
         Agregar

@@ -6,6 +6,7 @@ export interface CarritoItem {
   imagen: string;
   formato: string;
   quantity: number;
+  mangaId?: number;
 }
 
 export const crearCarritoItem = (
@@ -14,6 +15,7 @@ export const crearCarritoItem = (
   demografia: string,
   imagen: string,
   formato = 'Físico',
+  mangaId?: number,
 ): CarritoItem => ({
   id: `${titulo.trim().toLocaleLowerCase('es').replace(/[^a-z0-9]+/g, '-')}-${formato.toLocaleLowerCase('es')}`,
   titulo,
@@ -22,6 +24,7 @@ export const crearCarritoItem = (
   imagen,
   formato,
   quantity: 1,
+  mangaId,
 });
 
 const normalizarRutaImagen = (imagen: unknown) => {
@@ -70,6 +73,7 @@ export const normalizarCarrito = (valor: unknown): CarritoItem[] => {
       imagen: normalizarRutaImagen(item.imagen),
       formato: typeof item.formato === 'string' ? item.formato : 'Físico',
       quantity,
+      mangaId: typeof item.mangaId === 'number' ? item.mangaId : undefined,
     }];
   });
 };

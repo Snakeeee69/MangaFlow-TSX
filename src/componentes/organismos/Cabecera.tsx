@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { esAdminSesion, type SesionUsuario } from '../../data/sesion';
 
 const enlaces = [
   { texto: 'Inicio', href: '#/inicio', pagina: 'inicio' },
@@ -12,11 +13,14 @@ const enlaces = [
 
 interface CabeceraProps {
   cantidadCarrito: number;
-  paginaActiva: 'inicio' | 'catalogo' | 'puntos' | 'editoriales' | 'biblioteca' | 'proximamente';
+  paginaActiva: 'inicio' | 'catalogo' | 'puntos' | 'editoriales' | 'biblioteca' | 'proximamente' | 'carrito' | 'admin';
+  sesion: SesionUsuario | null;
+  alCerrarSesion: () => void;
 }
 
-export const Cabecera = ({ cantidadCarrito, paginaActiva }: CabeceraProps) => {
+export const Cabecera = ({ cantidadCarrito, paginaActiva, sesion, alCerrarSesion }: CabeceraProps) => {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const usuarioAutenticado = Boolean(sesion && !sesion.isGuest);
 
   return (
     <>
@@ -62,13 +66,39 @@ export const Cabecera = ({ cantidadCarrito, paginaActiva }: CabeceraProps) => {
                   </a>
                 </li>
               ))}
+              {esAdminSesion(sesion) && (
+                <li className="nav-item">
+                  <a
+                    className={`nav-link-mf ${paginaActiva === 'admin' ? 'active' : ''}`}
+                    href="#/admin"
+                    onClick={() => setMenuAbierto(false)}
+                  >
+                    <i className="fa-solid fa-shield-halved me-1" aria-hidden="true" />
+                    Panel admin
+                  </a>
+                </li>
+              )}
             </ul>
 
             <div className="header-actions d-flex align-items-center gap-2">
-              <span className="user-badge badge px-3 py-2 rounded-3">Invitado</span>
-              <a className="header-icon-button" href="#/login" aria-label="Iniciar sesión" title="Iniciar sesión">
-                <i className="fa-solid fa-right-to-bracket" aria-hidden="true" />
-              </a>
+              <span className="user-badge badge px-3 py-2 rounded-3">
+                {sesion?.nombre || (sesion?.isGuest ? 'Invitado' : 'Sin sesión')}
+              </span>
+              {usuarioAutenticado ? (
+                <button
+                  className="header-icon-button"
+                  type="button"
+                  onClick={alCerrarSesion}
+                  aria-label="Cerrar sesión"
+                  title="Cerrar sesión"
+                >
+                  <i className="fa-solid fa-right-from-bracket" aria-hidden="true" />
+                </button>
+              ) : (
+                <a className="header-icon-button" href="#/login" aria-label="Iniciar sesión" title="Iniciar sesión">
+                  <i className="fa-solid fa-right-to-bracket" aria-hidden="true" />
+                </a>
+              )}
               <a className="header-icon-button position-relative" href="#/carrito" aria-label="Carrito" title="Carrito">
                 <i className="fa-solid fa-cart-shopping" aria-hidden="true" />
                 <span className="cart-count">{cantidadCarrito}</span>
