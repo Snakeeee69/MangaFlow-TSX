@@ -13,6 +13,8 @@ export interface SesionUsuario {
   [key: string]: unknown;
 }
 
+export type RolMangaFlow = 'admin' | 'staff' | 'user' | 'guest';
+
 export interface CompraSesion {
   id: string;
   fecha: string;
@@ -48,6 +50,13 @@ const clavesSesion = ['mangaFlow_session', 'activeUser', 'usuarioLogueado', 'cur
 const clavePerfilUsuario = (correo: string) => (
   `mangaFlow_usuario_${correo.trim().toLocaleLowerCase('es')}`
 );
+
+export const rolPorCorreo = (correo: string): RolMangaFlow => {
+  const correoNormalizado = correo.trim().toLocaleLowerCase('es');
+  if (correoNormalizado.endsWith('@mangaflow.cl')) return 'admin';
+  if (correoNormalizado.endsWith('@mangaflow.com')) return 'staff';
+  return 'user';
+};
 
 export const cargarPerfilUsuario = (correo: string): SesionUsuario | null => {
   const guardado = localStorage.getItem(clavePerfilUsuario(correo));
@@ -98,6 +107,7 @@ export const guardarSesion = (sesion: SesionUsuario) => {
   localStorage.setItem('usuarioLogueado', JSON.stringify(sesion));
   localStorage.setItem('currentUser', JSON.stringify(sesion));
   window.dispatchEvent(new Event('mangaflow:metricas-actualizadas'));
+  window.dispatchEvent(new Event('mangaflow:pedidos-actualizados'));
 };
 
 export const puntosDeSesion = (sesion: SesionUsuario | null) => {
@@ -106,6 +116,9 @@ export const puntosDeSesion = (sesion: SesionUsuario | null) => {
 };
 
 export const esAdminSesion = (sesion: SesionUsuario | null) => (
-  Boolean(sesion?.email?.trim().toLocaleLowerCase('es').endsWith('@mangaflow.cl'))
-  && !sesion?.isGuest
+  Boolean(sesion?.email && rolPorCorreo(sesion.email) === 'admin' && !sesion.isGuest)
+);
+
+export const esTrabajadorSesion = (sesion: SesionUsuario | null) => (
+  Boolean(sesion?.email && rolPorCorreo(sesion.email) === 'staff' && !sesion.isGuest)
 );

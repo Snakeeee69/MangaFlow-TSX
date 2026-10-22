@@ -7,16 +7,23 @@ import {
   type MetricasAdmin,
 } from '../data/metricasAdmin';
 import {
+  cargarPedidosAdmin,
+  suscribirPedidosAdmin,
+  type PedidoAdmin,
+} from '../data/pedidosAdmin';
+import {
   demografiasCatalogo,
   esMangaActivo,
   generosCatalogo,
   slugManga,
   type MangaCatalogo,
 } from '../data/catalogo';
+import type { RolMangaFlow } from '../data/sesion';
 
 interface AdminProps {
   mangas: MangaCatalogo[];
   alGuardarCatalogo: (catalogo: MangaCatalogo[]) => void;
+  rol: Extract<RolMangaFlow, 'admin' | 'staff'>;
 }
 
 interface FormularioManga {
@@ -121,7 +128,8 @@ const GraficoActividad = ({ dias }: { dias: DiaMetricas[] }) => {
   );
 };
 
-export const Admin = ({ mangas, alGuardarCatalogo }: AdminProps) => {
+export const Admin = ({ mangas, alGuardarCatalogo, rol }: AdminProps) => {
+  const esAdministrador = rol === 'admin';
   const [busqueda, setBusqueda] = useState('');
   const [verArchivados, setVerArchivados] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -129,14 +137,16 @@ export const Admin = ({ mangas, alGuardarCatalogo }: AdminProps) => {
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
   const [metricas, setMetricas] = useState<MetricasAdmin>(cargarMetricasAdmin);
+  const [pedidos, setPedidos] = useState<PedidoAdmin[]>(cargarPedidosAdmin);
 
   useEffect(() => suscribirMetricasAdmin(() => setMetricas(cargarMetricasAdmin())), []);
+  useEffect(() => suscribirPedidosAdmin(() => setPedidos(cargarPedidosAdmin())), []);
 
   const mangasFiltrados = useMemo(() => mangas.filter(manga => {
     const texto = `${manga.titulo} ${manga.autor ?? ''}`.toLocaleLowerCase('es');
     const coincideBusqueda = texto.includes(busqueda.trim().toLocaleLowerCase('es'));
-    return coincideBusqueda && (verArchivados || esMangaActivo(manga));
-  }), [busqueda, mangas, verArchivados]);
+    return coincideBusqueda && (esAdministrador && verArchivados || esMangaActivo(manga));
+  }), [busqueda, esAdministrador, mangas, verArchivados]);
 
   const visibles = mangas.filter(esMangaActivo).length;
   const archivados = mangas.length - visibles;
@@ -185,15 +195,24 @@ export const Admin = ({ mangas, alGuardarCatalogo }: AdminProps) => {
   };
 
   const cambiarVisibilidad = (manga: MangaCatalogo) => {
+    if (!esAdministrador && !esMangaActivo(manga)) return;
     const activo = !esMangaActivo(manga);
     alGuardarCatalogo(mangas.map(item => item.id === manga.id ? { ...item, activo } : item));
     setMensaje(activo ? `${manga.titulo} volvió a estar visible.` : `${manga.titulo} se ocultó. Puedes restaurarlo cuando quieras.`);
   };
 
   const actualizarStock = (manga: MangaCatalogo, valor: string) => {
+    if (!esMangaActivo(manga)) return;
     const stock = Number(valor);
     if (!Number.isInteger(stock) || stock < 0) return;
     alGuardarCatalogo(mangas.map(item => item.id === manga.id ? { ...item, stock } : item));
+  };
+
+  const eliminarManga = (manga: MangaCatalogo) => {
+    if (!esAdministrador) return;
+    if (!window.confirm(`¿Eliminar definitivamente "${manga.titulo}" del catálogo? Esta acción no se puede deshacer.`)) return;
+    alGuardarCatalogo(mangas.filter(item => item.id !== manga.id));
+    setMensaje(`${manga.titulo} se eliminó definitivamente del catálogo.`);
   };
 
   return (
@@ -204,12 +223,18 @@ export const Admin = ({ mangas, alGuardarCatalogo }: AdminProps) => {
             <i className="fa-solid fa-arrow-left me-2" aria-hidden="true" />
             Volver a MangaFlow
           </Link>
-          <h1 className="text-white fw-bold fs-2 mt-3 mb-1">Panel de administración</h1>
-          <p className="text-secondary mb-0">Gestiona el catálogo y revisa la actividad de MangaFlow.</p>
+          <h1 className="text-white fw-bold fs-2 mt-3 mb-1">
+            {esAdministrador ? 'Panel de administración' : 'Panel de personal'}
+          </h1>
+          <p className="text-secondary mb-0">
+            {esAdministrador
+              ? 'Gestiona el catálogo, los pedidos y la actividad de MangaFlow.'
+              : 'Agrega mangas, actualiza stock, archiva títulos y revisa pedidos.'}
+          </p>
         </div>
-        <span className="admin-role-badge">
-          <i className="fa-solid fa-shield-halved me-2" aria-hidden="true" />
-          Administrador
+        <span className={`admin-role-badge ${esAdministrador ? '' : 'staff'}`}>
+          <i className={`fa-solid ${esAdministrador ? 'fa-shield-halved' : 'fa-user-gear'} me-2`} aria-hidden="true" />
+          {esAdministrador ? 'Administrador' : 'Personal'}
         </span>
       </div>
 
@@ -226,49 +251,96 @@ export const Admin = ({ mangas, alGuardarCatalogo }: AdminProps) => {
         </div>
       )}
 
-      <section className="row g-3 mb-4" aria-label="Resumen del catálogo">
-        {[
-          { etiqueta: 'Títulos visibles', valor: visibles, icono: 'fa-book-open' },
-          { etiqueta: 'Archivados', valor: archivados, icono: 'fa-box-archive' },
-          { etiqueta: 'Solo digital', valor: mangas.filter(manga => esMangaActivo(manga) && manga.esDigitalOnly).length, icono: 'fa-tablet-screen-button' },
-        ].map(dato => (
-          <div className="col-12 col-sm-4" key={dato.etiqueta}>
-            <article className="admin-stat-card p-3 rounded-3 h-100">
-              <div className="d-flex justify-content-between align-items-center">
-                <span className="text-secondary small">{dato.etiqueta}</span>
-                <i className={`fa-solid ${dato.icono} text-accent`} aria-hidden="true" />
-              </div>
-              <p className="text-white fs-3 fw-bold mb-0 mt-2">{dato.valor}</p>
-            </article>
-          </div>
-        ))}
-      </section>
-
-      <section className="mb-4" aria-label="Resumen de actividad y ventas">
-        <h2 className="text-white fw-bold fs-5 mb-3">Resumen de la tienda</h2>
-        <div className="row g-3 mb-3">
+      {esAdministrador && (
+        <section className="row g-3 mb-4" aria-label="Resumen del catálogo">
           {[
-            { etiqueta: 'Visitas (7 días)', valor: metricas.dias.reduce((total, dia) => total + dia.visitas, 0), icono: 'fa-eye' },
-            { etiqueta: 'Registros', valor: metricas.registros, icono: 'fa-user-plus' },
-            { etiqueta: 'Compras', valor: metricas.compras, icono: 'fa-bag-shopping' },
-            { etiqueta: 'Ventas acumuladas', valor: formatearCLP(metricas.ventas), icono: 'fa-chart-line' },
-            { etiqueta: 'Puntos utilizados', valor: metricas.puntosUsados.toLocaleString('es-CL'), icono: 'fa-star' },
+            { etiqueta: 'Títulos visibles', valor: visibles, icono: 'fa-book-open' },
+            { etiqueta: 'Archivados', valor: archivados, icono: 'fa-box-archive' },
+            { etiqueta: 'Solo digital', valor: mangas.filter(manga => esMangaActivo(manga) && manga.esDigitalOnly).length, icono: 'fa-tablet-screen-button' },
           ].map(dato => (
-            <div className="col-6 col-md-4 col-xl" key={dato.etiqueta}>
+            <div className="col-12 col-sm-4" key={dato.etiqueta}>
               <article className="admin-stat-card p-3 rounded-3 h-100">
-                <div className="d-flex justify-content-between align-items-center gap-2">
+                <div className="d-flex justify-content-between align-items-center">
                   <span className="text-secondary small">{dato.etiqueta}</span>
                   <i className={`fa-solid ${dato.icono} text-accent`} aria-hidden="true" />
                 </div>
-                <p className="text-white fs-4 fw-bold mb-0 mt-2">{dato.valor}</p>
+                <p className="text-white fs-3 fw-bold mb-0 mt-2">{dato.valor}</p>
               </article>
             </div>
           ))}
+        </section>
+      )}
+
+      {esAdministrador && (
+        <section className="mb-4" aria-label="Resumen de actividad y ventas">
+          <h2 className="text-white fw-bold fs-5 mb-3">Resumen de la tienda</h2>
+          <div className="row g-3 mb-3">
+            {[
+              { etiqueta: 'Visitas (7 días)', valor: metricas.dias.reduce((total, dia) => total + dia.visitas, 0), icono: 'fa-eye' },
+              { etiqueta: 'Registros', valor: metricas.registros, icono: 'fa-user-plus' },
+              { etiqueta: 'Compras', valor: metricas.compras, icono: 'fa-bag-shopping' },
+              { etiqueta: 'Ventas acumuladas', valor: formatearCLP(metricas.ventas), icono: 'fa-chart-line' },
+              { etiqueta: 'Puntos utilizados', valor: metricas.puntosUsados.toLocaleString('es-CL'), icono: 'fa-star' },
+            ].map(dato => (
+              <div className="col-6 col-md-4 col-xl" key={dato.etiqueta}>
+                <article className="admin-stat-card p-3 rounded-3 h-100">
+                  <div className="d-flex justify-content-between align-items-center gap-2">
+                    <span className="text-secondary small">{dato.etiqueta}</span>
+                    <i className={`fa-solid ${dato.icono} text-accent`} aria-hidden="true" />
+                  </div>
+                  <p className="text-white fs-4 fw-bold mb-0 mt-2">{dato.valor}</p>
+                </article>
+              </div>
+            ))}
+          </div>
+          <div className="row g-3">
+            <div className="col-12 col-xl-5"><GraficoVentas dias={metricas.dias} /></div>
+            <div className="col-12 col-xl-7"><GraficoActividad dias={metricas.dias} /></div>
+          </div>
+        </section>
+      )}
+
+      <section className="admin-catalog-panel p-3 p-md-4 rounded-4 mb-4" aria-labelledby="admin-orders-title">
+        <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+          <div>
+            <h2 id="admin-orders-title" className="text-white fw-bold fs-5 mb-1">Pedidos</h2>
+            <p className="text-secondary small mb-0">Compras registradas por los usuarios en este navegador.</p>
+          </div>
+          <span className="admin-role-badge">{pedidos.length} {pedidos.length === 1 ? 'pedido' : 'pedidos'}</span>
         </div>
-        <div className="row g-3">
-          <div className="col-12 col-xl-5"><GraficoVentas dias={metricas.dias} /></div>
-          <div className="col-12 col-xl-7"><GraficoActividad dias={metricas.dias} /></div>
-        </div>
+        {pedidos.length === 0 ? (
+          <p className="text-secondary text-center py-4 mb-0">Todavía no hay pedidos registrados.</p>
+        ) : (
+          <div className="d-flex flex-column gap-2">
+            {pedidos.map(({ cliente, nombreCliente, compra }) => (
+              <details className="admin-order-card p-3 rounded-3" key={`${cliente}-${compra.folio}`}>
+                <summary className="admin-order-summary">
+                  <span className="min-w-0">
+                    <strong className="text-white d-block">{compra.folio}</strong>
+                    <span className="text-secondary small">{nombreCliente} · {cliente}</span>
+                  </span>
+                  <span className="text-secondary small text-nowrap">
+                    {new Date(compra.fecha).toLocaleDateString('es-CL')}
+                  </span>
+                  <strong className="text-white text-nowrap">{formatearCLP(compra.total)}</strong>
+                </summary>
+                <div className="admin-order-details mt-3 pt-3">
+                  <p className="text-secondary small mb-2">
+                    Entrega: <span className="text-white">{compra.direccionEntrega || compra.tipoEntrega || 'No indicada'}</span>
+                  </p>
+                  <ul className="list-unstyled mb-0 d-flex flex-column gap-1">
+                    {compra.items.map((item, indice) => (
+                      <li className="d-flex justify-content-between gap-3 text-secondary small" key={`${item.id}-${indice}`}>
+                        <span>{item.titulo} · {item.formato} × {item.quantity}</span>
+                        <span className="text-white text-nowrap">{formatearCLP(item.precio * item.quantity)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="admin-catalog-panel p-3 p-md-4 rounded-4">
@@ -350,10 +422,12 @@ export const Admin = ({ mangas, alGuardarCatalogo }: AdminProps) => {
             <span className="visually-hidden">Buscar manga o autor</span>
             <input value={busqueda} onChange={event => setBusqueda(event.target.value)} placeholder="Buscar por título o autor" />
           </label>
-          <label className="form-check form-switch mb-0">
-            <input className="form-check-input" type="checkbox" checked={verArchivados} onChange={event => setVerArchivados(event.target.checked)} />
-            <span className="form-check-label text-secondary small">Mostrar archivados ({archivados})</span>
-          </label>
+          {esAdministrador && (
+            <label className="form-check form-switch mb-0">
+              <input className="form-check-input" type="checkbox" checked={verArchivados} onChange={event => setVerArchivados(event.target.checked)} />
+              <span className="form-check-label text-secondary small">Mostrar archivados ({archivados})</span>
+            </label>
+          )}
         </div>
 
         <div className="d-flex flex-column gap-2">
@@ -379,14 +453,29 @@ export const Admin = ({ mangas, alGuardarCatalogo }: AdminProps) => {
                     <span className="visually-hidden">Stock de {manga.titulo}</span>
                     <input type="number" min="0" step="1" value={manga.stock ?? 0} onChange={event => actualizarStock(manga, event.target.value)} disabled={!activo} />
                   </label>
-                  <button
-                    className={`btn btn-sm ${activo ? 'btn-outline-warning' : 'btn-outline-success'}`}
-                    type="button"
-                    onClick={() => cambiarVisibilidad(manga)}
-                  >
-                    <i className={`fa-solid ${activo ? 'fa-box-archive' : 'fa-rotate-left'} me-1`} aria-hidden="true" />
-                    {activo ? 'Archivar' : 'Restaurar'}
-                  </button>
+                  <div className="d-flex flex-wrap align-items-center justify-content-end gap-2">
+                    {(activo || esAdministrador) && (
+                      <button
+                        className={`btn btn-sm ${activo ? 'btn-outline-warning' : 'btn-outline-success'}`}
+                        type="button"
+                        onClick={() => cambiarVisibilidad(manga)}
+                      >
+                        <i className={`fa-solid ${activo ? 'fa-box-archive' : 'fa-rotate-left'} me-1`} aria-hidden="true" />
+                        {activo ? 'Archivar' : 'Restaurar'}
+                      </button>
+                    )}
+                    {esAdministrador && (
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        type="button"
+                        onClick={() => eliminarManga(manga)}
+                        aria-label={`Eliminar definitivamente ${manga.titulo}`}
+                      >
+                        <i className="fa-solid fa-trash me-1" aria-hidden="true" />
+                        Eliminar
+                      </button>
+                    )}
+                  </div>
                 </div>
               </article>
             );

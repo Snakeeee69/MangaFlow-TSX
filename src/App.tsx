@@ -15,10 +15,18 @@ import { Login } from './paginas/Login';
 import { MangaDetalle } from './paginas/MangaDetalle';
 import { Puntos } from './paginas/Puntos';
 import { Proximamente } from './paginas/Proximamente';
+import { SobreNosotros } from './paginas/SobreNosotros';
+import { Contacto } from './paginas/Contacto';
 import { cargarCarrito, contarItemsCarrito, type CarritoItem } from './data/carrito';
 import { cargarCatalogo, guardarCatalogo, type MangaCatalogo } from './data/catalogo';
 import { registrarVisita } from './data/metricasAdmin';
-import { cargarSesion, esAdminSesion, guardarSesion, type SesionUsuario } from './data/sesion';
+import {
+  cargarSesion,
+  esAdminSesion,
+  esTrabajadorSesion,
+  guardarSesion,
+  type SesionUsuario,
+} from './data/sesion';
 
 const Aplicacion = () => {
   const [sesion, setSesion] = useState<SesionUsuario | null>(cargarSesion);
@@ -188,6 +196,8 @@ const Aplicacion = () => {
           <Route path="/puntos" element={<Puntos sesion={sesion} alActualizarSesion={actualizarSesion} />} />
           <Route path="/biblioteca" element={<Biblioteca sesion={sesion} />} />
           <Route path="/proximamente" element={<Proximamente />} />
+          <Route path="/sobre-nosotros" element={<SobreNosotros />} />
+          <Route path="/contacto" element={<Contacto />} />
           <Route
             path="/detalle-manga/:slug"
             element={(
@@ -202,8 +212,14 @@ const Aplicacion = () => {
           <Route path="/autor/:slug" element={<AutorDetalle mangas={catalogo} />} />
           <Route
             path="/admin"
-            element={esAdminSesion(sesion)
-              ? <Admin mangas={catalogo} alGuardarCatalogo={setCatalogo} />
+            element={esAdminSesion(sesion) || esTrabajadorSesion(sesion)
+              ? (
+                <Admin
+                  mangas={catalogo}
+                  alGuardarCatalogo={setCatalogo}
+                  rol={esAdminSesion(sesion) ? 'admin' : 'staff'}
+                />
+              )
               : <Navigate to="/inicio" replace />}
           />
           <Route

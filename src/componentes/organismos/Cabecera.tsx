@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { esAdminSesion, type SesionUsuario } from '../../data/sesion';
+import { esAdminSesion, esTrabajadorSesion, type SesionUsuario } from '../../data/sesion';
 
 const enlaces = [
   { texto: 'Inicio', href: '#/inicio', pagina: 'inicio' },
@@ -66,7 +66,7 @@ export const Cabecera = ({ cantidadCarrito, paginaActiva, sesion, alCerrarSesion
                   </a>
                 </li>
               ))}
-              {esAdminSesion(sesion) && (
+              {(esAdminSesion(sesion) || esTrabajadorSesion(sesion)) && (
                 <li className="nav-item">
                   <a
                     className={`nav-link-mf ${paginaActiva === 'admin' ? 'active' : ''}`}
@@ -74,7 +74,7 @@ export const Cabecera = ({ cantidadCarrito, paginaActiva, sesion, alCerrarSesion
                     onClick={() => setMenuAbierto(false)}
                   >
                     <i className="fa-solid fa-shield-halved me-1" aria-hidden="true" />
-                    Panel admin
+                    {esAdminSesion(sesion) ? 'Panel admin' : 'Panel personal'}
                   </a>
                 </li>
               )}

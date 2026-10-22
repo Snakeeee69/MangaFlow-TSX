@@ -22,6 +22,8 @@ export const PiePagina = () => (
             <li><a href="#/catalogo">Catálogo</a></li>
             <li><a href="#/editoriales">Editoriales</a></li>
             <li><a href="#/puntos">Puntos y recompensas</a></li>
+            <li><a href="#/sobre-nosotros">Sobre nosotros</a></li>
+            <li><a href="#/contacto">Contacto y ubicación</a></li>
           </ul>
         </div>
 

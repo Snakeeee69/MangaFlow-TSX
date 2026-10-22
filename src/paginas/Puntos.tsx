@@ -137,6 +137,15 @@ export const Puntos = ({ sesion, alActualizarSesion }: PuntosProps) => {
         </div>
       </section>
 
+      {pestana === 'recompensas' && (
+        <div className="points-redemption-notice mb-4" role="note">
+          <i className="fa-solid fa-store" aria-hidden="true" />
+          <span>
+            <strong>Retiro presencial:</strong> todas las recompensas canjeadas deben retirarse en persona en la tienda.
+          </span>
+        </div>
+      )}
+
       <div className="points-tabs d-flex flex-wrap gap-2 p-1 rounded-3 mb-4" role="tablist" aria-label="Secciones de puntos">
         <button
           className={`btn btn-sm px-4 py-2 rounded-2 fw-semibold ${pestana === 'recompensas' ? 'catalog-tab-active' : 'catalog-tab-inactive'}`}
