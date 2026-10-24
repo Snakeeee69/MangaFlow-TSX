@@ -3,7 +3,7 @@ export interface Recompensa {
   nombre: string;
   costoPuntos: number;
   stock: number;
-  tipo: 'merch' | 'manga' | 'edicion-especial';
+  tipo: 'merch' | 'manga' | 'Novela-visual' | 'edicion-especial';
   descripcion: string;
   imagen: string;
 }
@@ -87,12 +87,12 @@ export const recompensas: Recompensa[] = [
   },
   {
     id: 'r8',
-    nombre: 'Manga Edición Deluxe o Tapa Dura',
+    nombre: 'Manga Novela Visual',
     costoPuntos: 25000,
     stock: 5,
-    tipo: 'edicion-especial',
-    descripcion: 'Canjea por una edición especial deluxe o tapa dura de nuestra colección premium. La joya de cualquier colección.',
-    imagen: '/images/recompensas/Manga_tapadura.png',
+    tipo: 'Novela-visual',
+    descripcion: 'Desbloquea el capítulo especial premium de la novela visual con ilustraciones inéditas.',
+    imagen: '/images/recompensas/novela_visual.jpeg',
   },
 ];
 
@@ -109,5 +109,4 @@ export const estadosCertificacion: EstadoCertificacion[] = [
   { value: 'muy-bueno', label: 'Muy bueno', puntos: 600, color: 'text-info' },
   { value: 'bueno', label: 'Bueno', puntos: 400, color: 'text-warning' },
   { value: 'regular', label: 'Regular', puntos: 150, color: 'text-orange' },
-  { value: 'rechazado', label: 'Rechazado', puntos: 0, color: 'text-danger' },
 ];
