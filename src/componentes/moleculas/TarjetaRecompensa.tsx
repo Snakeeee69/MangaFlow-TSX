@@ -10,6 +10,7 @@ interface TarjetaRecompensaProps {
 const etiquetasTipo = {
   merch: { texto: 'Merch', clase: 'bg-purple' },
   manga: { texto: 'Manga', clase: 'bg-primary' },
+  'Novela-visual': { texto: 'Novela visual', clase: 'bg-warning text-dark' },
   'edicion-especial': { texto: 'Premium', clase: 'bg-warning text-dark' },
 };
 
