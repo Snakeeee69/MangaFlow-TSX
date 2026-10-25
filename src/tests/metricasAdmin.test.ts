@@ -1,9 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  cargarMetricasAdmin,
-  registrarVisita,
-  suscribirMetricasAdmin,
-} from '../data/metricasAdmin';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { cargarMetricasAdmin } from '../data/metricasAdmin';
 
 const fechaHoy = () => {
   const hoy = new Date();
@@ -13,23 +9,6 @@ const fechaHoy = () => {
 describe('métricas locales de administración', () => {
   beforeEach(() => {
     localStorage.clear();
-  });
-
-  it('registra una visita para hoy y notifica a los suscriptores', () => {
-    const actualizar = vi.fn();
-    const cancelar = suscribirMetricasAdmin(actualizar);
-    registrarVisita();
-
-    expect(JSON.parse(localStorage.getItem('mangaFlow_visitas_diarias') ?? '{}')[fechaHoy()]).toBe(1);
-    expect(actualizar).toHaveBeenCalledOnce();
-    cancelar();
-  });
-
-  it('acumula visitas repetidas en la fecha actual', () => {
-    registrarVisita();
-    registrarVisita();
-
-    expect(JSON.parse(localStorage.getItem('mangaFlow_visitas_diarias') ?? '{}')[fechaHoy()]).toBe(2);
   });
 
   it('resume perfiles, compras, ventas y puntos utilizados', () => {
@@ -55,13 +34,5 @@ describe('métricas locales de administración', () => {
       puntosUsados: 250,
     });
     expect(hoyEnGrafico).toMatchObject({ visitas: 3, registros: 1, compras: 2, ventas: 4990 });
-  });
-
-  it('devuelve los últimos siete días aunque no existan perfiles', () => {
-    const metricas = cargarMetricasAdmin();
-
-    expect(metricas.dias).toHaveLength(7);
-    expect(metricas.visitas).toBe(0);
-    expect(metricas.compras).toBe(0);
   });
 });

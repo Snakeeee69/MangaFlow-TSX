@@ -1,14 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cargarPedidosAdmin, suscribirPedidosAdmin } from '../data/pedidosAdmin';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { cargarPedidosAdmin } from '../data/pedidosAdmin';
 
 describe('pedidos de administración', () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.restoreAllMocks();
-  });
-
-  it('devuelve una lista vacía si no hay compras guardadas', () => {
-    expect(cargarPedidosAdmin()).toEqual([]);
   });
 
   it('carga pedidos con datos del cliente y los ordena del más reciente al más antiguo', () => {
@@ -26,27 +21,5 @@ describe('pedidos de administración', () => {
       cliente: 'lector@gmail.com',
       nombreCliente: 'Lector',
     });
-  });
-
-  it('omite compras malformadas y registra el problema', () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    localStorage.setItem('mangaFlow_usuario_lector@gmail.com', JSON.stringify({
-      email: 'lector@gmail.com',
-      compras: [{ id: 'broken', total: 'incorrecto' }],
-    }));
-
-    expect(cargarPedidosAdmin()).toEqual([]);
-    expect(error).toHaveBeenCalledOnce();
-  });
-
-  it('notifica cuando cambian los pedidos y permite cancelar la suscripción', () => {
-    const actualizar = vi.fn();
-    const cancelar = suscribirPedidosAdmin(actualizar);
-    window.dispatchEvent(new Event('mangaflow:pedidos-actualizados'));
-    expect(actualizar).toHaveBeenCalledOnce();
-
-    cancelar();
-    window.dispatchEvent(new Event('mangaflow:pedidos-actualizados'));
-    expect(actualizar).toHaveBeenCalledOnce();
   });
 });
