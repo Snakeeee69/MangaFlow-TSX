@@ -15,6 +15,7 @@ import {
   demografiasCatalogo,
   esMangaActivo,
   generosCatalogo,
+  PRECIO_MANGA_DIGITAL,
   slugManga,
   type MangaCatalogo,
 } from '../data/catalogo';
@@ -178,6 +179,7 @@ export const Admin = ({ mangas, alGuardarCatalogo, rol }: AdminProps) => {
       id: Math.max(0, ...mangas.map(manga => manga.id)) + 1,
       titulo,
       precio,
+      precioDigital: PRECIO_MANGA_DIGITAL,
       demografia: formulario.demografia,
       generos: [formulario.genero],
       esDigitalOnly: formulario.digital,

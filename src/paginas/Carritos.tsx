@@ -6,7 +6,11 @@ import {
   formatearCLP,
   type CarritoItem,
 } from '../data/carrito';
+import { PRECIO_MANGA_DIGITAL } from '../data/catalogo';
 import { puntosDeSesion, type LibroBiblioteca, type SesionUsuario } from '../data/sesion';
+
+const descuentoCuponDigital = PRECIO_MANGA_DIGITAL;
+const puntosPorCadaMilPesosFisicos = 10;
 
 interface Boleta {
   folio: string;
@@ -16,6 +20,10 @@ interface Boleta {
   iva: number;
   total: number;
   puntosUsados: number;
+  descuentoCupon: number;
+  cuponAplicado?: string;
+  cuponesGanados: number;
+  puntosGanados: number;
   medioPago: string;
   tipoEntrega: 'despacho' | 'retiro' | 'digital';
   direccionEntrega: string;
@@ -43,6 +51,7 @@ export const Carritos = ({
   alVaciar,
 }: CarritosProps) => {
   const [puntosAplicar, setPuntosAplicar] = useState(0);
+  const [usarCupon, setUsarCupon] = useState(false);
   const [boleta, setBoleta] = useState<Boleta | null>(null);
   const [error, setError] = useState('');
   const [medioPago, setMedioPago] = useState('Débito');
@@ -54,13 +63,25 @@ export const Carritos = ({
   const puntosDisponibles = puntosDeSesion(sesion);
   const cantidadItems = contarItemsCarrito(items);
   const subtotalBruto = items.reduce((total, item) => total + item.precio * item.quantity, 0);
-  const maxPuntosCanjeables = Math.min(puntosDisponibles, subtotalBruto);
-  const descuentoPuntos = Math.min(puntosAplicar, maxPuntosCanjeables);
-  const totalConDescuento = subtotalBruto - descuentoPuntos;
-  const subtotalNeto = Math.round(totalConDescuento / 1.19);
-  const iva = totalConDescuento - subtotalNeto;
+  const cuponesDisponibles = Array.isArray(sesion?.cuponesFisicos) ? sesion.cuponesFisicos : [];
   const tieneProductosFisicos = items.some(item => item.formato.toLocaleLowerCase('es') !== 'digital');
   const tieneProductosDigitales = items.some(item => item.formato.toLocaleLowerCase('es') === 'digital');
+  const subtotalFisico = items.reduce(
+    (total, item) => total + (item.formato.toLocaleLowerCase('es') !== 'digital' ? item.precio * item.quantity : 0),
+    0,
+  );
+  const cuponAplicable = usarCupon && cuponesDisponibles.length > 0 && tieneProductosFisicos;
+  const descuentoCupon = cuponAplicable ? Math.min(descuentoCuponDigital, subtotalFisico) : 0;
+  const maxPuntosCanjeables = Math.min(puntosDisponibles, subtotalBruto - descuentoCupon);
+  const descuentoPuntos = Math.min(puntosAplicar, maxPuntosCanjeables);
+  const puntosDescontadosDeCompraFisica = Math.min(descuentoPuntos, Math.max(0, subtotalFisico - descuentoCupon));
+  const puntosGanables = tieneProductosFisicos
+    ? Math.floor(Math.max(0, subtotalFisico - descuentoCupon - puntosDescontadosDeCompraFisica) / 1000)
+      * puntosPorCadaMilPesosFisicos
+    : 0;
+  const totalConDescuento = subtotalBruto - descuentoPuntos - descuentoCupon;
+  const subtotalNeto = Math.round(totalConDescuento / 1.19);
+  const iva = totalConDescuento - subtotalNeto;
   const mediosPagoDisponibles = mediosPago.filter(medio => (
     medio !== 'Efectivo al retirar' || (tieneProductosFisicos && tipoEntrega === 'retiro')
   ));
@@ -83,9 +104,18 @@ export const Carritos = ({
 
     try {
       if (!sesion) return;
-      const nuevosPuntos = Math.max(0, puntosDisponibles - descuentoPuntos);
+      const puntosGanados = puntosGanables;
+      const nuevosPuntos = Math.max(0, puntosDisponibles - descuentoPuntos + puntosGanados);
       const folio = `MF-${String((sesion.compras?.length ?? 0) + 1).padStart(5, '0')}`;
       const fecha = new Date().toISOString();
+      const codigoCuponAplicado = cuponAplicable ? cuponesDisponibles[0] : undefined;
+      const cantidadCuponesGanados = items
+        .filter(item => item.formato.toLocaleLowerCase('es') === 'digital')
+        .reduce((total, item) => total + item.quantity, 0);
+      const nuevosCupones = Array.from(
+        { length: cantidadCuponesGanados },
+        (_, indice) => `MF-${folio.slice(-5)}-D${indice + 1}`,
+      );
       const itemsComprados = items.map(item => ({
         id: item.id,
         titulo: item.titulo,
@@ -124,6 +154,10 @@ export const Carritos = ({
         puntos: nuevosPuntos,
         points: nuevosPuntos,
         biblioteca: bibliotecaActualizada,
+        cuponesFisicos: [
+          ...cuponesDisponibles.filter(codigo => codigo !== codigoCuponAplicado),
+          ...nuevosCupones,
+        ],
         compras: [{
           id: folio,
           folio,
@@ -132,6 +166,9 @@ export const Carritos = ({
           subtotalNeto,
           iva,
           descuentoPuntos,
+          descuentoCupon,
+          cuponAplicado: codigoCuponAplicado,
+          puntosGanados,
           medioPago,
           tipoEntrega: tipoEntregaFinal,
           direccionEntrega,
@@ -146,6 +183,10 @@ export const Carritos = ({
         iva,
         total: totalConDescuento,
         puntosUsados: descuentoPuntos,
+        descuentoCupon,
+        cuponAplicado: codigoCuponAplicado,
+        cuponesGanados: cantidadCuponesGanados,
+        puntosGanados,
         medioPago,
         tipoEntrega: tipoEntregaFinal,
         direccionEntrega,
@@ -280,11 +321,46 @@ export const Carritos = ({
                   </div>
                 </div>
 
+                {tieneProductosFisicos && (
+                  <fieldset className="checkout-section mb-3">
+                    <legend className="text-white small fw-semibold mb-2">Cupón para manga físico</legend>
+                    {cuponesDisponibles.length > 0 ? (
+                      <label className="checkout-choice">
+                        <input
+                          type="checkbox"
+                          checked={cuponAplicable}
+                          onChange={event => setUsarCupon(event.target.checked)}
+                          aria-label="Usar cupón de descuento"
+                        />
+                        <span>
+                          Usar cupón de $2.300 ({cuponesDisponibles.length} disponible{cuponesDisponibles.length === 1 ? '' : 's'})
+                        </span>
+                      </label>
+                    ) : (
+                      <p className="text-secondary small mb-0">
+                        No tienes cupones disponibles. Compra un tomo digital para recibir $2.300 de descuento en una compra física.
+                      </p>
+                    )}
+                  </fieldset>
+                )}
+
                 <div className="border-top border-secondary border-opacity-20 pt-3 mb-4">
+                  {descuentoCupon > 0 && (
+                    <div className="d-flex justify-content-between small text-secondary mb-2">
+                      <span>Cupón físico</span>
+                      <span className="text-success">−{formatearCLP(descuentoCupon)}</span>
+                    </div>
+                  )}
                   {descuentoPuntos > 0 && (
                     <div className="d-flex justify-content-between small text-secondary mb-2">
                       <span>Descuento puntos</span>
                       <span className="text-success">−{formatearCLP(descuentoPuntos)}</span>
+                    </div>
+                  )}
+                  {puntosGanables > 0 && (
+                    <div className="d-flex justify-content-between small text-secondary mb-2">
+                      <span>Puntos por compra física</span>
+                      <span className="text-accent">+{puntosGanables} pts</span>
                     </div>
                   )}
                   <div className="d-flex justify-content-between small text-secondary mb-2">
@@ -445,9 +521,21 @@ export const Carritos = ({
                 ))}
               </div>
               <div className="border-top border-secondary border-opacity-20 pt-3 mb-4">
+                {boleta.descuentoCupon > 0 && (
+                  <div className="d-flex justify-content-between text-secondary small mb-2">
+                    <span>Cupón físico ({boleta.cuponAplicado})</span>
+                    <span className="text-success">−{formatearCLP(boleta.descuentoCupon)}</span>
+                  </div>
+                )}
                 {boleta.puntosUsados > 0 && (
                   <div className="d-flex justify-content-between text-secondary small mb-2">
                     <span>Descuento puntos</span><span className="text-success">−{formatearCLP(boleta.puntosUsados)}</span>
+                  </div>
+                )}
+                {boleta.puntosGanados > 0 && (
+                  <div className="d-flex justify-content-between text-secondary small mb-2">
+                    <span>Puntos por compra física</span>
+                    <span className="text-accent">+{boleta.puntosGanados} pts</span>
                   </div>
                 )}
                 <div className="d-flex justify-content-between text-secondary small mb-2">
@@ -474,11 +562,27 @@ export const Carritos = ({
               )}
               <div className="receipt-note p-3 rounded-3 text-center">
                 <p className="mb-0 small fw-semibold">
-                  {boleta.tipoEntrega === 'digital'
-                    ? 'Tus mangas digitales ya están en Mi Biblioteca.'
-                    : boleta.tieneProductosDigitales
-                      ? 'Los mangas digitales ya están en Mi Biblioteca; los físicos seguirán la opción de entrega seleccionada.'
-                      : 'Tu compra y boleta están guardadas en Mi cuenta.'}
+                  {boleta.cuponesGanados > 0
+                    ? boleta.cuponesGanados === 1
+                      ? '¡Tu cupón de $2.300 se ha añadido a tu cuenta!'
+                      : `¡Tus ${boleta.cuponesGanados} cupones de $2.300 se han añadido a tu cuenta!`
+                    : boleta.tipoEntrega === 'digital'
+                      ? 'Tus mangas digitales ya están en Mi Biblioteca.'
+                      : boleta.tieneProductosDigitales
+                        ? 'Los mangas digitales ya están en Mi Biblioteca; los físicos seguirán la opción de entrega seleccionada.'
+                        : 'Tu compra y boleta están guardadas en Mi cuenta.'}
+                  {boleta.puntosGanados > 0 && (
+                    <span className="d-block mt-2">
+                      ¡Sumaste {boleta.puntosGanados} puntos por tu compra física!
+                    </span>
+                  )}
+                  {boleta.cuponesGanados > 0 && (
+                    <span className="d-block mt-2">
+                      {boleta.tipoEntrega === 'digital'
+                        ? 'Tu manga digital ya está en Mi Biblioteca.'
+                        : 'Los mangas digitales ya están en Mi Biblioteca; los físicos seguirán la opción de entrega seleccionada.'}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>

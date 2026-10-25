@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { crearCarritoItem, type CarritoItem } from '../data/carrito';
-import { esMangaActivo, slugManga, type MangaCatalogo } from '../data/catalogo';
+import { esMangaActivo, PRECIO_MANGA_DIGITAL, slugManga, type MangaCatalogo } from '../data/catalogo';
 import type { SesionUsuario } from '../data/sesion';
 
 interface MangaDetalleProps {
@@ -27,9 +27,14 @@ export const MangaDetalle = ({
     slug,
     formato: manga?.esDigitalOnly ? 'Digital' : 'Físico',
   }));
+  const [seleccionTomo, setSeleccionTomo] = useState<{ slug?: string; tomo: number }>(() => ({
+    slug,
+    tomo: 1,
+  }));
   const formatoSeleccionado = seleccionFormato.slug === slug
     ? seleccionFormato.formato
     : manga?.esDigitalOnly ? 'Digital' : 'Físico';
+  const tomoSeleccionado = seleccionTomo.slug === slug ? seleccionTomo.tomo : 1;
 
   if (!manga || !esMangaActivo(manga)) {
     return (
@@ -45,8 +50,10 @@ export const MangaDetalle = ({
   const wishlist = sesion?.wishlist ?? [];
   const enDeseos = wishlist.includes(manga.id);
   const precioSeleccionado = formatoSeleccionado === 'Digital'
-    ? manga.precioDigital ?? manga.precio
+    ? PRECIO_MANGA_DIGITAL
     : manga.precio;
+  const cantidadTomos = Math.max(1, Math.floor(manga.tomosDisponibles ?? 1));
+  const autorEsIndividual = manga.autor ? !/[(),/&]/.test(manga.autor) : false;
   const tieneLectorDisponible = manga.titulo.toLocaleLowerCase('es').includes('one piece');
   const relacionados = mangas.filter(item => (
     item.id !== manga.id
@@ -68,7 +75,7 @@ export const MangaDetalle = ({
 
   const agregar = () => {
     alAgregarAlCarrito(crearCarritoItem(
-      manga.titulo,
+      `${manga.titulo} - Tomo ${tomoSeleccionado}`,
       precioSeleccionado,
       manga.demografia,
       manga.imagen,
@@ -137,7 +144,9 @@ export const MangaDetalle = ({
               <div className="detail-info-card">
                 <span className="text-secondary small d-block">Autor</span>
                 {manga.autor
-                  ? <Link className="text-white fw-semibold text-decoration-none" to={`/autor/${slugManga(manga.autor)}`}>{manga.autor}</Link>
+                  ? autorEsIndividual
+                    ? <Link className="text-white fw-semibold text-decoration-none" to={`/autor/${slugManga(manga.autor)}`}>{manga.autor}</Link>
+                    : <span className="text-white fw-semibold">{manga.autor}</span>
                   : <span className="text-white fw-semibold">Por confirmar</span>}
               </div>
             </div>
@@ -173,13 +182,35 @@ export const MangaDetalle = ({
           )}
 
           {formatoSeleccionado === 'Digital' && (
-            <p className="detail-digital-note mb-3">
-              <i className="fa-solid fa-book-open-reader me-2" aria-hidden="true" />
-              {tieneLectorDisponible
-                ? 'Al comprar la edición digital de One Piece, aparecerá en Mi Biblioteca para leer sus páginas.'
-                : 'La edición digital aparecerá en Mi Biblioteca. El lector estará disponible cuando se cargue su contenido.'}
-            </p>
+            <>
+              <p className="detail-digital-note mb-3">
+                <i className="fa-solid fa-book-open-reader me-2" aria-hidden="true" />
+                {tieneLectorDisponible
+                  ? 'Al comprar la edición digital de One Piece, aparecerá en Mi Biblioteca para leer sus páginas.'
+                  : 'La edición digital aparecerá en Mi Biblioteca. El lector estará disponible cuando se cargue su contenido.'}
+              </p>
+              <p className="detail-digital-note mb-3" role="note">
+                <i className="fa-solid fa-ticket me-2" aria-hidden="true" />
+                Cada tomo digital cuesta $2.300. Al comprarlo, recibes un cupón de $2.300 de descuento para cualquier manga físico.
+              </p>
+            </>
           )}
+
+          <div className="mb-4">
+            <label className="text-secondary small fw-semibold d-block mb-2" htmlFor="manga-volume">
+              Tomo a comprar
+            </label>
+            <select
+              className="form-select bg-dark text-white border-secondary"
+              id="manga-volume"
+              value={tomoSeleccionado}
+              onChange={event => setSeleccionTomo({ slug, tomo: Number(event.target.value) })}
+            >
+              {Array.from({ length: cantidadTomos }, (_, indice) => indice + 1).map(tomo => (
+                <option key={tomo} value={tomo}>Tomo {tomo}</option>
+              ))}
+            </select>
+          </div>
 
           <section className="detail-purchase-card p-4 rounded-4">
             <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">

@@ -56,6 +56,28 @@ export const Cuenta = ({ sesion, mangas, alActualizarSesion }: CuentaProps) => {
         </div>
       </section>
 
+      <section className="account-empty p-4 rounded-3 mb-4" aria-labelledby="account-coupons-title">
+        <div className="d-flex justify-content-between align-items-center gap-3 mb-2">
+          <div>
+            <h2 id="account-coupons-title" className="text-white fw-bold fs-5 mb-1">Cupones para mangas físicos</h2>
+            <p className="text-secondary small mb-0">Cada tomo digital comprado agrega un cupón de $2.300.</p>
+          </div>
+          <span className="account-count">{sesion.cuponesFisicos?.length ?? 0}</span>
+        </div>
+        {sesion.cuponesFisicos?.length ? (
+          <ul className="list-unstyled d-flex flex-column gap-2 mb-0">
+            {sesion.cuponesFisicos.map(codigo => (
+              <li className="text-white small" key={codigo}>
+                <i className="fa-solid fa-ticket text-accent me-2" aria-hidden="true" />
+                {codigo} · Descuento de $2.300
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-secondary small mb-0">Todavía no tienes cupones disponibles.</p>
+        )}
+      </section>
+
       <section className="mb-5">
         <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
           <div>
@@ -147,6 +169,18 @@ export const Cuenta = ({ sesion, mangas, alActualizarSesion }: CuentaProps) => {
                       {(compra.descuentoPuntos ?? 0) > 0 && (
                         <div className="d-flex justify-content-between text-secondary">
                           <span>Descuento por puntos</span><span className="text-success">−{formatearCLP(compra.descuentoPuntos ?? 0)}</span>
+                        </div>
+                      )}
+                      {(compra.descuentoCupon ?? 0) > 0 && (
+                        <div className="d-flex justify-content-between text-secondary">
+                          <span>Cupón físico {compra.cuponAplicado ? `(${compra.cuponAplicado})` : ''}</span>
+                          <span className="text-success">−{formatearCLP(compra.descuentoCupon ?? 0)}</span>
+                        </div>
+                      )}
+                      {(compra.puntosGanados ?? 0) > 0 && (
+                        <div className="d-flex justify-content-between text-secondary">
+                          <span>Puntos ganados por compra física</span>
+                          <span className="text-accent">+{compra.puntosGanados} pts</span>
                         </div>
                       )}
                       <div className="d-flex justify-content-between fw-bold border-top border-secondary border-opacity-25 pt-2">

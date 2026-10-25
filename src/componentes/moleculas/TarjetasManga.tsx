@@ -1,6 +1,6 @@
 import { type MangaItem } from '../../data/mangaMock';
 import { crearCarritoItem, type CarritoItem } from '../../data/carrito';
-import { slugManga } from '../../data/catalogo';
+import { PRECIO_MANGA_DIGITAL, slugManga } from '../../data/catalogo';
 import { BotonCarrito } from '../atomos/BotonCarritos';
 import type { MangaCatalogo } from '../../data/catalogo';
 
@@ -64,15 +64,17 @@ export const TarjetaManga = ({
       </a>
       <div className="d-flex justify-content-between align-items-center mt-2">
         <span className={`product-price ${esNovedad ? 'small' : 'fs-5'}`}>
-          ${manga.precio.toLocaleString("es-CL")}
+          ${(detalle?.esDigitalOnly ? PRECIO_MANGA_DIGITAL : manga.precio).toLocaleString('es-CL')}
         </span>
         <BotonCarrito 
           esChico={esNovedad} 
           onClick={() => alAgregarAlCarrito(crearCarritoItem(
-            manga.titulo,
-            manga.precio,
+            `${detalle?.titulo ?? tituloBase} - Tomo 1`,
+            detalle?.esDigitalOnly ? PRECIO_MANGA_DIGITAL : manga.precio,
             manga.demografia,
             manga.imagen,
+            detalle?.esDigitalOnly ? 'Digital' : 'Físico',
+            detalle?.id,
           ))}
         />
       </div>

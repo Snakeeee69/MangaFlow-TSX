@@ -1,4 +1,4 @@
-import { slugManga, type MangaCatalogo } from '../../data/catalogo';
+import { PRECIO_MANGA_DIGITAL, slugManga, type MangaCatalogo } from '../../data/catalogo';
 import { crearCarritoItem, type CarritoItem } from '../../data/carrito';
 
 interface TarjetaCatalogoProps {
@@ -58,14 +58,16 @@ export const TarjetaCatalogo = ({
       <h2 className="product-title mb-2">{manga.titulo}</h2>
     </a>
     <div className="d-flex justify-content-between align-items-center mt-2 gap-2">
-      <span className="product-price fs-5">${manga.precio.toLocaleString('es-CL')}</span>
+      <span className="product-price fs-5">
+        ${(manga.esDigitalOnly ? PRECIO_MANGA_DIGITAL : manga.precio).toLocaleString('es-CL')}
+      </span>
       <button
         className="btn-add-cart px-3 py-2"
         type="button"
         aria-label={`Agregar ${manga.titulo} al carrito`}
         onClick={() => alAgregarAlCarrito(crearCarritoItem(
-          manga.titulo,
-          manga.precio,
+          `${manga.titulo} - Tomo 1`,
+          manga.esDigitalOnly ? PRECIO_MANGA_DIGITAL : manga.precio,
           manga.demografia,
           manga.imagen,
           manga.esDigitalOnly ? 'Digital' : 'Físico',

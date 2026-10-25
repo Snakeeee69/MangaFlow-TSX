@@ -10,6 +10,7 @@ export interface SesionUsuario {
   wishlist?: number[];
   compras?: CompraSesion[];
   biblioteca?: LibroBiblioteca[];
+  cuponesFisicos?: string[];
   [key: string]: unknown;
 }
 
@@ -23,6 +24,9 @@ export interface CompraSesion {
   subtotalNeto?: number;
   iva?: number;
   descuentoPuntos?: number;
+  descuentoCupon?: number;
+  cuponAplicado?: string;
+  puntosGanados?: number;
   medioPago?: string;
   tipoEntrega?: 'despacho' | 'retiro' | 'digital';
   direccionEntrega?: string;
